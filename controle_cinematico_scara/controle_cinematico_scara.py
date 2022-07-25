@@ -2,7 +2,7 @@
 ## Universidade Federal de Alagoas
 ## Instituto de Computação
 ## ECOM062 - Robótica
-## PROJETO DE ROBÔ
+## CONTROLE CINEMÁTICO SCARA
 ## CONTROLE COM CINEMÁTICA DIFERENCIAL
 ## by José Augusto
 ############################
