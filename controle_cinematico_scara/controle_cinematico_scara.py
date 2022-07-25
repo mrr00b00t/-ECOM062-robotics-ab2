@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 # Função para facilitar a alteração de posição das juntas
 def move_joints(clientID, jointHandles, jointPositions):
     for (position, joint) in zip(jointPositions, jointHandles):
-        sim.simxSetJointTargetPosition(clientID, joint, position, sim.simx_opmode_oneshot)
+        sim.simxSetJointPosition(clientID, joint, position, sim.simx_opmode_oneshot)
         time.sleep(0.01)
     
 
@@ -30,20 +30,18 @@ has_error = lambda z: reduce(lambda x, y: x and y,
 
 # Definindo Robô com a biblioteca Robotics ToolBox
 # e os parâmetros de Denavit-Hatenberg
-def get_UR5():
+def get_SCARA():
     return rtb.DHRobot([
-        rtb.RevoluteDH(a=.0, d=.089159, alpha=np.pi/2, offset=-np.pi/2),
-        rtb.RevoluteDH(a=-.425, d=.0, alpha=.0, offset=-np.pi/2),
-        rtb.RevoluteDH(a=-.39225, d=.0, alpha=.0),
-        rtb.RevoluteDH(a=.0, d=.10915, alpha=np.pi/2, offset=-np.pi/2),
-        rtb.RevoluteDH(a=.0, d=.09465, alpha=-np.pi/2, offset=np.pi),
-        rtb.RevoluteDH(a=.0, d=.0823, alpha=.0, offset=-np.pi/2),
+        rtb.RevoluteDH(a=.475, d=.0, alpha=.0),
+        rtb.RevoluteDH(a=.4, d=.0, alpha=np.pi),
+        rtb.PrismaticDH(a=.0, theta=.0, alpha=.0, qlim=[.0, .1]),
+        rtb.RevoluteDH(a=.0, d=.0, alpha=.0)
    ])
    
-UR5 = get_UR5()
+SCARA = get_SCARA()
 
 # Tabela de Denavit-Hatenberg
-print(UR5)
+print(SCARA)
 
 # termina todas as conexões só pra garantir
 sim.simxFinish(-1)
@@ -61,18 +59,15 @@ if clientID != -1:
     time.sleep(2)
     
     # Colentando os handles úteis
-    errorr, robot = sim.simxGetObjectHandle(clientID, 'UR5', sim.simx_opmode_oneshot_wait)
+    errorr, robot = sim.simxGetObjectHandle(clientID, 'MTB', sim.simx_opmode_oneshot_wait)
     errord, dummy = sim.simxGetObjectHandle(clientID, 'Dummy', sim.simx_opmode_oneshot_wait)
     error1, axis1 = sim.simxGetObjectHandle(clientID,  'rev1', sim.simx_opmode_oneshot_wait)
     error2, axis2 = sim.simxGetObjectHandle(clientID,  'rev2', sim.simx_opmode_oneshot_wait)
     error3, axis3 = sim.simxGetObjectHandle(clientID,  'rev3', sim.simx_opmode_oneshot_wait)
-    error4, axis4 = sim.simxGetObjectHandle(clientID,  'rev4', sim.simx_opmode_oneshot_wait)
-    error5, axis5 = sim.simxGetObjectHandle(clientID,  'rev5', sim.simx_opmode_oneshot_wait)
-    error6, axis6 = sim.simxGetObjectHandle(clientID,  'rev6', sim.simx_opmode_oneshot_wait)
     error7, edge  = sim.simxGetObjectHandle(clientID,  'edge', sim.simx_opmode_oneshot_wait)
     
     # Criando lista com as juntas
-    joints = [axis1, axis2, axis3, axis4, axis5, axis6]
+    joints = [axis1, axis2, axis3]
     
     # Ativando stream de dados
     # Cria stream de dados como recomendado
@@ -80,14 +75,11 @@ if clientID != -1:
     _ = sim.simxGetJointPosition(clientID, axis1, sim.simx_opmode_streaming)
     _ = sim.simxGetJointPosition(clientID, axis2, sim.simx_opmode_streaming)
     _ = sim.simxGetJointPosition(clientID, axis3, sim.simx_opmode_streaming)
-    _ = sim.simxGetJointPosition(clientID, axis4, sim.simx_opmode_streaming)
-    _ = sim.simxGetJointPosition(clientID, axis5, sim.simx_opmode_streaming)
-    _ = sim.simxGetJointPosition(clientID, axis6, sim.simx_opmode_streaming)
     _, X = sim.simxGetObjectPosition(clientID, edge, -1, sim.simx_opmode_streaming)
     
     
     # Checando erros iniciais
-    errors = [errorr, errord, error1, error2, error3, error4, error5, error6, error7]
+    errors = [errorr, errord, error1, error2, error3, error7]
     
     if has_error(errors):
         print('Erro encontrado. Finalizando programa.')
@@ -107,7 +99,7 @@ if clientID != -1:
     time.sleep(2.)
     
     # Colocando robô em Home
-    move_joints(clientID, joints, [0, 0, 0, 0, 0, 0])
+    move_joints(clientID, joints, [0, 0, 0])
     time.sleep(2.)
     
     # Passo para integração
@@ -119,13 +111,11 @@ if clientID != -1:
         "axis2": [],
         "axis3": [],
         "axis4": [],
-        "axis5": [],
-        "axis6": [],
     }
     
     # Loop principal
     while True:
-        # Pega
+        # Pega posições da ponta e do objeto dummy
         _, E = sim.simxGetObjectPosition(clientID, edge, -1, sim.simx_opmode_buffer)
         _, D = sim.simxGetObjectPosition(clientID, dummy, -1, sim.simx_opmode_buffer)
         time.sleep(0.01)
@@ -151,20 +141,18 @@ if clientID != -1:
         _, A1 = sim.simxGetJointPosition(clientID, axis1, sim.simx_opmode_buffer)
         _, A2 = sim.simxGetJointPosition(clientID, axis2, sim.simx_opmode_buffer)
         _, A3 = sim.simxGetJointPosition(clientID, axis3, sim.simx_opmode_buffer)
-        _, A4 = sim.simxGetJointPosition(clientID, axis4, sim.simx_opmode_buffer)
-        _, A5 = sim.simxGetJointPosition(clientID, axis5, sim.simx_opmode_buffer)
-        _, A6 = sim.simxGetJointPosition(clientID, axis6, sim.simx_opmode_buffer)
-        time.sleep(0.01)
+        _, A4 = _, .0
+        time.sleep(0.05)
         
-        A = [A1, A2, A3, A4, A5, A6]
+        A = [A1, A2, A3, A4]
         
         ## Algoritmo Resolved-Rate
         # Calcula a jacobiana e a jacobiana inversa
-        J  = UR5.jacobe(A)
+        J  = SCARA.jacobe(A)
         _J = np.linalg.pinv(J)
         
         # cinemática direta para A
-        _edge  = UR5.fkine(A);
+        _edge  = SCARA.fkine(A);
         # Pega a matriz de transformação homogênea
         _dummy = sm.SE3(D[0], D[1], D[2])
         # Calcula a velocidade
@@ -174,7 +162,7 @@ if clientID != -1:
         A  = A + _A * dt
         
         # Move as juntas para a posição calculada na iteração atual
-        move_joints(clientID, joints, A)
+        move_joints(clientID, joints, A[:-1])
         
         # Guardando erros para os gráficos
         for (i, erro) in enumerate(_A):
